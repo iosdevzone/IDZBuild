@@ -1,0 +1,101 @@
+#!/bin/bash
+
+IDZ_SAVE_DIR=`pwd`
+IDZ_SCRIPT_NAME=`basename $0`
+
+# Print usage information and exit
+idz_usage()
+{
+  cd $IDZ_SAVE_DIR
+  echo "Usage: $IDZ_SCRIPT_NAME arch sdk_version configure_path"
+  echo "  Where arch is one of armv6, armv7, armv7s"
+  exit 1
+}
+
+# Print error message and exit
+idz_error()
+{
+  cd $IDZ_SAVE_DIR
+  echo $1
+  exit 1
+}
+
+# Test if the last command failed and call idz_error if appropriate
+idz_check_error()
+{
+  if [ $? -ne 0 ] ; then
+    idz_error $1
+  fi
+}
+
+# Print usage if too few arguments
+if [ $# -lt 3 ] ; then 
+  idz_usage
+fi
+
+# Transfer arguments to more meaningful names
+IDZ_ARCH=$1
+IDZ_SDK_VERSION=$2
+IDZ_CONFIGURE=$3
+
+# IDZ_PLATFORM and IDZ_HOST only depend on IDZ_ARCH
+case $IDZ_ARCH in 
+  i386 )
+    IDZ_PLATFORM=iPhoneSimulator
+    IDZ_HOST=i386-apple-darwin10 
+    ;;
+  armv6 | armv7 | armv7s )
+    IDZ_PLATFORM=iPhoneOS 
+    IDZ_HOST=arm-apple-darwin10
+    ;;
+  * )
+    echo "Unrecognised architecture $IDZ_ARCH" 
+    idz_usage
+    ;;
+esac
+
+# Convert a possible relative path to configure to an absolute path
+case $IDZ_CONFIGURE in
+  /* )
+    ;;
+  * )
+    IDZ_CONFIGURE=`pwd`/$IDZ_CONFIGURE
+    ;;
+esac
+    
+# Derive the environment variables
+IDZ_XCODE_ROOT=`xcode-select -print-path`
+IDZ_PLATFORM_PATH=$IDZ_XCODE_ROOT/Platforms/$IDZ_PLATFORM.platform/Developer
+IDZ_SDK_PATH=$IDZ_PLATFORM_PATH/SDKs/$IDZ_PLATFORM$IDZ_SDK_VERSION.sdk
+IDZ_FLAGS="-isysroot $IDZ_SDK_PATH -arch $IDZ_ARCH"
+IDZ_PLATFORM_BIN_PATH=$IDZ_PLATFORM_PATH/usr/bin
+CC=$IDZ_PLATFORM_BIN_PATH/llvm-gcc
+CXX=$IDZ_PLATFORM_BIN_PATH/g++
+CFLAGS=$IDZ_FLAGS
+CXXFLAGS=$IDZ_FLAGS
+LDFLAGS=$IDZ_FLAGS
+export CC CXX CFLAGS CXXFLAGS LDFLAGS
+
+# Derive the command line arguments
+IDZ_PREFIX=$IDZ_SAVE_DIR/install-$IDZ_PLATFORM-$IDZ_ARCH
+IDZ_CONFIGURE_FLAGS="--host=$IDZ_HOST \
+		     --prefix=$IDZ_PREFIX \
+		     --disable-shared \
+                     $IDZ_EXTRA_CONFIGURE_FLAGS"
+
+IDZ_BUILD=$IDZ_SAVE_DIR/build-$IDZ_PLATFORM-$IDZ_ARCH
+mkdir -p $IDZ_BUILD
+cd $IDZ_BUILD
+IDZ_SAVE_DIR=$IDZ_BUILD
+
+echo "IDZ_CONFIGURE_FLAGS=$IDZ_CONFIGURE_FLAGS"
+
+$IDZ_CONFIGURE $IDZ_CONFIGURE_FLAGS | tee configure_$IDZ_ARCH.log 2>&1
+make clean | tee make_clean_$IDZ_ARCH.log 2>&1
+idz_check_error "Make clean failed."
+make | tee make_$IDZ_ARCH.log 2>&1
+idz_check_error "Build failed."
+make install | tee make_install_$IDZ_ARCH.log 2>&1
+idz_check_error "Install failed."
+
+cd $IDZ_SAVE_DIR
