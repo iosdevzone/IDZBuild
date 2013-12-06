@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# Script to create a pseudo-framework
+#
+idz_usage()
+{
+  IDZ_SCRIPT_NAME=`basename $0`
+  echo "Usage: $IDZ_SCRIPT_NAME <framwork_basename> <library_name> <header_dir>"  exit 1
+}
+
+IDZ_LIPO=`xcodebuild -sdk iphoneos6.1 -find-executable lipo`
+IDZ_NAME=$1 # Name of the framework (e.g. Ogg)
+IDZ_LIBNAME=$2 # Name of .a file (e.g. libogg.a)
+IDZ_HEADERS_SRC=$3 # Name of the directory to copy to Headers
+
+IDZ_FW=$IDZ_NAME.framework
+IDZ_HEADERS=$IDZ_FW/Headers
+
+if [ -e $IDZ_FW ] ; then
+  echo "Backing up existing framework to $IDZ_FW.bak"
+  rm -rf $IDZ_FW.bak
+  mv $IDZ_FW $IDZ_FW.bak
+fi
+mkdir -p $IDZ_FW
+cp -R $IDZ_HEADERS_SRC $IDZ_HEADERS
+
+for IDZ_ARCH in i386 armv6 armv7 armv7s; do
+  case $IDZ_ARCH in
+    i386 )
+      IDZ_PLATFORM=iPhoneSimulator
+      ;;
+    armv6 | armv7 | armv7s )
+      IDZ_PLATFORM=iPhoneOS
+      ;;
+    * )
+      echo "Unrecognised architecture $IDZ_ARCH"
+      idz_usage
+      ;;
+  esac
+  IDZ_INSTALL_DIR=install-$IDZ_PLATFORM-$IDZ_ARCH
+  IDZ_LIB=$IDZ_INSTALL_DIR/lib/$IDZ_LIBNAME
+  if [ -e $IDZ_LIB ] ; then
+    IDZ_LIPO_ARCH="$IDZ_LIPO_ARCH -arch $IDZ_ARCH $IDZ_LIB"
+  fi
+done
+
+$IDZ_LIPO -create -output $IDZ_FW/$IDZ_NAME $IDZ_LIPO_ARCH
