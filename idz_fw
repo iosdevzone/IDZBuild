@@ -8,7 +8,7 @@ idz_usage()
   echo "Usage: $IDZ_SCRIPT_NAME <framwork_basename> <library_name> <header_dir>"  exit 1
 }
 
-IDZ_LIPO=`xcodebuild -sdk iphoneos6.1 -find-executable lipo`
+IDZ_LIPO=`xcrun -find lipo`
 IDZ_NAME=$1 # Name of the framework (e.g. Ogg)
 IDZ_LIBNAME=$2 # Name of .a file (e.g. libogg.a)
 IDZ_HEADERS_SRC=$3 # Name of the directory to copy to Headers
@@ -24,12 +24,12 @@ fi
 mkdir -p $IDZ_FW
 cp -R $IDZ_HEADERS_SRC $IDZ_HEADERS
 
-for IDZ_ARCH in i386 armv6 armv7 armv7s; do
+for IDZ_ARCH in i386 armv6 armv7 armv7s arm64; do
   case $IDZ_ARCH in
     i386 )
       IDZ_PLATFORM=iPhoneSimulator
       ;;
-    armv6 | armv7 | armv7s )
+    armv6 | armv7 | armv7s | arm64 )
       IDZ_PLATFORM=iPhoneOS
       ;;
     * )

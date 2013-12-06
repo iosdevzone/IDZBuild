@@ -8,7 +8,7 @@ idz_usage()
 {
   cd $IDZ_SAVE_DIR
   echo "Usage: $IDZ_SCRIPT_NAME arch sdk_version configure_path"
-  echo "  Where arch is one of armv6, armv7, armv7s"
+  echo "  Where arch is one of armv6, armv7, armv7s, arm64"
   exit 1
 }
 
@@ -43,10 +43,12 @@ case $IDZ_ARCH in
   i386 )
     IDZ_PLATFORM=iPhoneSimulator
     IDZ_HOST=i386-apple-darwin10 
+    IDZ_SDK_PLATFORM=iphonesimulator
     ;;
-  armv6 | armv7 | armv7s )
+  armv6 | armv7 | armv7s | arm64 )
     IDZ_PLATFORM=iPhoneOS 
     IDZ_HOST=arm-apple-darwin10
+    IDZ_SDK_PLATFORM=iphoneos
     ;;
   * )
     echo "Unrecognised architecture $IDZ_ARCH" 
@@ -69,8 +71,11 @@ IDZ_PLATFORM_PATH=$IDZ_XCODE_ROOT/Platforms/$IDZ_PLATFORM.platform/Developer
 IDZ_SDK_PATH=$IDZ_PLATFORM_PATH/SDKs/$IDZ_PLATFORM$IDZ_SDK_VERSION.sdk
 IDZ_FLAGS="-isysroot $IDZ_SDK_PATH -arch $IDZ_ARCH"
 IDZ_PLATFORM_BIN_PATH=$IDZ_PLATFORM_PATH/usr/bin
-CC=$IDZ_PLATFORM_BIN_PATH/llvm-gcc
-CXX=$IDZ_PLATFORM_BIN_PATH/g++
+
+CC=`xcrun -sdk $IDZ_SDK_PLATFORM$IDZ_SDK_VERSION -find clang`
+echo "idz_build64:CC=$CC"
+
+CXX=$IDZ_PLATFORM_BIN_PATH/clang++
 CFLAGS=$IDZ_FLAGS
 CXXFLAGS=$IDZ_FLAGS
 LDFLAGS=$IDZ_FLAGS
