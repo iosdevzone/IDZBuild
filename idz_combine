@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+# This script combines a number of static library files (.a files) into
+# a single (new) output library
+#
+# If the output file exists it will be overwritten
+#
+ 
+usage()
+{
+  echo "Usage: $0 output_lib input_lib1 ..."
+  exit 1
+}
+ 
+if [ "$#" == "0" ]; then
+  usage
+fi
+ 
+#
+# Determine the absolute path of the output file
+#
+if [[ "$1" = /* ]]; then
+  ABS_OUTPUT_FILE=$1
+else
+  ABS_OUTPUT_FILE=$(pwd)/$1
+fi
+#
+# Remember output file as it appeared on command line too
+#
+OUTPUT_FILE=$1
+#
+# Determine the input files
+#
+shift
+INPUT_FILES=$@
+#
+# Print what we are going to do
+#
+echo "$OUTPUT_FILE <= $@"
+#
+# We'll do all the work in a temp dir
+#
+TMP_DIR=$(mktemp -d tmp.XXXXXX)
+mkdir -p $TMP_DIR
+pushd $TMP_DIR > /dev/null
+#
+# Extract the .o files from all the libs
+#
+for lib in $@
+do
+  if [[ "$lib" = /* ]]; then
+    ar -x $lib
+  else
+    ar -x ../$lib
+  fi
+done
+#
+# Create a new output archive by combining all the *.o files
+#
+ar -rs $ABS_OUTPUT_FILE *.o
+#
+# Return to the original directory and clean up
+#
+popd > /dev/null
+rm -rf $TMP_DIR
+exit 0
