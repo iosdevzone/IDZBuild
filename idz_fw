@@ -24,9 +24,9 @@ fi
 mkdir -p $IDZ_FW
 cp -R $IDZ_HEADERS_SRC $IDZ_HEADERS
 
-for IDZ_ARCH in i386 armv6 armv7 armv7s arm64; do
+for IDZ_ARCH in i386 x86_64 armv6 armv7 armv7s arm64; do
   case $IDZ_ARCH in
-    i386 )
+    i386 | x86_64 )
       IDZ_PLATFORM=iPhoneSimulator
       ;;
     armv6 | armv7 | armv7s | arm64 )
